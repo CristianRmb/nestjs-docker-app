@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -19,16 +19,18 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: process.env.NODE_ENV === 'prod' ? false : true, // Disabilita in produzione
         ssl:
-          process.env.NODE_ENV === 'production'
+          process.env.NODE_ENV === 'prod'
             ? { rejectUnauthorized: false }
             : false,
+
+        entities: ['dist/**/*.entity{.ts,.js}'],
       }),
       inject: [ConfigService],
     }),
+    AuthModule,
+    UsersModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
