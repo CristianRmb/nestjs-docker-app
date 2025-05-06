@@ -41,7 +41,8 @@ import { UsersModule } from './modules/users/users.module';
           entities: ['dist/**/*.entity{.ts,.js}'],
           logger: 'advanced-console',
           logNotifications: true,
-          logging: process.env.NODE_ENV === 'prod' ? false : true,
+          // logging: process.env.NODE_ENV === 'prod' ? false : true,
+          logging: true,
         };
       },
       inject: [ConfigService],
