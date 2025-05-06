@@ -22,7 +22,7 @@ jobs:
         run: npm ci
 
       - name: 🚀 Deploy to Railway
-        run: npx @railway/cli up
+        run: npx @railway/cli up --service=default
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
