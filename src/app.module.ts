@@ -11,22 +11,39 @@ import { UsersModule } from './modules/users/users.module';
       envFilePath: `.env.${process.env.NODE_ENV || 'dev'}`,
     }),
     TypeOrmModule.forRootAsync({
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get('DB_USER'),
-        password: config.get('DB_PASS'),
-        database: config.get('DB_NAME'),
-        autoLoadEntities: true,
-        synchronize: process.env.NODE_ENV === 'prod' ? false : true, // Disabilita in produzione
-        ssl:
-          process.env.NODE_ENV === 'prod'
-            ? { rejectUnauthorized: false }
-            : false,
+      useFactory: (config: ConfigService) => {
+        const isProd = process.env.NODE_ENV === 'prod';
+        return {
+          type: 'postgres',
+          host: config.get('DB_HOST'),
+          port: config.get<number>('DB_PORT'),
+          username: config.get('DB_USER'),
+          password: config.get('DB_PASS'),
+          database: config.get('DB_NAME'),
+          autoLoadEntities: true,
+          synchronize: process.env.NODE_ENV === 'prod' ? false : true, // Disabilita in produzione
+          ssl: isProd ? true : false,
+          extra: isProd
+            ? {
+                ssl: {
+                  rejectUnauthorized: false,
+                },
+              }
+            : {},
 
-        entities: ['dist/**/*.entity{.ts,.js}'],
-      }),
+          // ssl: true,
+          // extra: {
+          //   ssl: {
+          //     rejectUnauthorized: false,
+          //   },
+          // },
+
+          entities: ['dist/**/*.entity{.ts,.js}'],
+          logger: 'advanced-console',
+          logNotifications: true,
+          logging: process.env.NODE_ENV === 'prod' ? false : true,
+        };
+      },
       inject: [ConfigService],
     }),
     AuthModule,
