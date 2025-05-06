@@ -21,7 +21,7 @@ import { UsersModule } from './modules/users/users.module';
           password: config.get('DB_PASS'),
           database: config.get('DB_NAME'),
           autoLoadEntities: true,
-          synchronize: process.env.NODE_ENV === 'prod' ? false : true, // Disabilita in produzione
+          synchronize: !isProd, // Disabilita in produzione
           ssl: isProd ? true : false,
           extra: isProd
             ? {
@@ -31,18 +31,10 @@ import { UsersModule } from './modules/users/users.module';
               }
             : {},
 
-          // ssl: true,
-          // extra: {
-          //   ssl: {
-          //     rejectUnauthorized: false,
-          //   },
-          // },
-
           entities: ['dist/**/*.entity{.ts,.js}'],
           logger: 'advanced-console',
           logNotifications: true,
-          // logging: process.env.NODE_ENV === 'prod' ? false : true,
-          logging: true,
+          logging: ['error', 'query', 'schema'],
         };
       },
       inject: [ConfigService],
