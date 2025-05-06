@@ -1,16 +1,12 @@
 FROM node:20-alpine AS builder
-
 WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install
 COPY . .
 RUN npm run build
 
-# Fase di produzione
 FROM node:20-alpine
-
 WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app /usr/src/app
 RUN npm install --omit=dev
-
 CMD ["npm", "run", "start:prod"]

@@ -21,11 +21,11 @@ jobs:
       - name: 📦 Install deps
         run: npm ci
 
-      - name: 🚀 Build Docker image for production
-        run: |
-          docker build -f Dockerfile.prod -t nestjs-app .
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      # - name: 🚀 Build Docker image for production
+      #   run: |
+      #     docker build -f Dockerfile.prod -t nestjs-app .
+      #   env:
+      #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
       - name: 🚀 Deploy to Railway
         run: npx @railway/cli up --service=nestjs-docker-app
