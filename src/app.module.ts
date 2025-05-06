@@ -20,6 +20,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         database: config.get('DB_NAME'),
         autoLoadEntities: true,
         synchronize: true,
+        ssl:
+          process.env.NODE_ENV === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
       inject: [ConfigService],
     }),
