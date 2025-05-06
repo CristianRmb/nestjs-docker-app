@@ -21,19 +21,8 @@ jobs:
       - name: 📦 Install deps
         run: npm ci
 
-      # - name: 🔍 Lint
-      #   run: npm run lint
-
-      # - name: 🧪 Run Tests
-      #   run: npm run test
-
-      - name: 🔧 Install Railway CLI
-        run: npm install -g @railway/cli
-
-      # - name: 🚀 Deploy to Railway
-      #   run: npx railway up --service=web
       - name: 🚀 Deploy to Railway
-        run: railway up --service=web
+        run: npx @railway/cli up
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
