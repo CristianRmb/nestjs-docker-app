@@ -37,4 +37,9 @@ export class UsersController {
       ...updateUserDto,
     };
   }
+
+  @Get('me')
+  getMe() {
+    return this.usersService.getMe(1);
+  }
 }

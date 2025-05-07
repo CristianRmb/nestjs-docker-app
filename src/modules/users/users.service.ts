@@ -43,4 +43,18 @@ export class UsersService {
   async remove(id: number): Promise<void> {
     await this.userRepository.delete(id);
   }
+
+  // let's just create a mock for the  get "me"
+  async getMe(id: number): Promise<UserEntity> {
+    // return this.userRepository.findOne(id);
+    //
+    return Promise.resolve({
+      id: id,
+      username: 'John-Doe',
+      email: '',
+      password: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
 }
