@@ -6,7 +6,7 @@ async function bootstrap() {
   // await app.listen(3000);
   // Railway espone process.env.PORT
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 App is running on http://localhost:${port}`);
 }
 bootstrap();
