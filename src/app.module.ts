@@ -3,12 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
-
+console.log('NODE_ENV:', process.env.NODE_ENV);
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || 'dev'}`,
+      envFilePath: process.env.NODE_ENV === 'dev' ? '.env.dev' : '.env',
     }),
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => {
@@ -31,7 +31,8 @@ import { UsersModule } from './modules/users/users.module';
               }
             : {},
 
-          entities: ['dist/**/*.entity{.ts,.js}'],
+          // entities: ['dist/**/*.entity{.ts,.js}'],
+          entities: [__dirname + '/**/*.entity.js'],
           logger: 'advanced-console',
           logNotifications: true,
           logging: ['error', 'query', 'schema'],
