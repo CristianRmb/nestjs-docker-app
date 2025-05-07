@@ -3,6 +3,10 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: '*', // Puoi specificare l'URL del frontend se lo desideri
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Aggiungi i metodi che ti servono
+  });
   // await app.listen(3000);
   // Railway espone process.env.PORT
   const port = process.env.PORT || 8080;
