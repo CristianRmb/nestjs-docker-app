@@ -17,10 +17,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    let message: any;
+    if (exception instanceof HttpException) {
+      message = exception.getResponse();
+    } else if (exception instanceof Error) {
+      // Extract the actual error message and stack for non-HTTP exceptions
+      message = {
+        message: exception.message,
+        error: exception.name,
+        stack: process.env.NODE_ENV === 'prod' ? undefined : exception.stack,
+      };
+    } else {
+      message = { message: 'Internal server error' };
+    }
+
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
+      method: request.method,
+      message: message,
     };
 
     response.status(status).json(errorResponse);

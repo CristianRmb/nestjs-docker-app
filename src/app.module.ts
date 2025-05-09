@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AppController } from './app.controller';
+import { SlackModule } from './modules/slack/slack.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -43,6 +44,7 @@ import { AppController } from './app.controller';
     }),
     AuthModule,
     UsersModule,
+    SlackModule,
   ],
   controllers: [AppController],
 })
