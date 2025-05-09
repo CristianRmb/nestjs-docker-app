@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AppController } from './app.controller';
 import { SlackModule } from './modules/slack/slack.module';
+import { StandupNotifierService } from './modules/slack/slack-standup.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -47,5 +48,6 @@ import { SlackModule } from './modules/slack/slack.module';
     SlackModule,
   ],
   controllers: [AppController],
+  providers: [StandupNotifierService],
 })
 export class AppModule {}
