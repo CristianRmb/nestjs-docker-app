@@ -6,6 +6,9 @@ import { UsersModule } from './modules/users/users.module';
 import { AppController } from './app.controller';
 import { SlackModule } from './modules/slack/slack.module';
 import { StandupNotifierService } from './modules/slack/slack-standup.service';
+import { GoogleStrategy } from './google.strategy';
+import { GoogleAuthController } from './modules/googleAuth/googleAuth.controller';
+import { GoogleAuthModule } from './modules/googleAuth/googleAuth.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -46,8 +49,9 @@ import { StandupNotifierService } from './modules/slack/slack-standup.service';
     AuthModule,
     UsersModule,
     SlackModule,
+    GoogleAuthModule,
   ],
   controllers: [AppController],
-  providers: [StandupNotifierService],
+  providers: [StandupNotifierService, GoogleStrategy],
 })
 export class AppModule {}
