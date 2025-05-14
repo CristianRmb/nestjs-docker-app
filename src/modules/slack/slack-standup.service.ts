@@ -5,7 +5,7 @@ import { App, LogLevel } from '@slack/bolt';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
-import axios from 'axios';
+// import  from 'openai';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -22,6 +22,13 @@ export class StandupNotifierService implements OnModuleInit {
       socketMode: true,
       logLevel: LogLevel.INFO,
     });
+
+    // // Configura OpenAI
+    // const openai = new OpenAIApi(
+    //   new Configuration({
+    //     apiKey: process.env.OPENAI_API_KEY,
+    //   }),
+    // );
 
     // Ascolta i messaggi nel canale standup-meeting
     this.app.message(async ({ message, say }) => {
@@ -122,6 +129,41 @@ export class StandupNotifierService implements OnModuleInit {
 
       return respond({ text: `✅ Partita creata e giocatori notificati.` });
     });
+
+    // Slash command handler
+    // this.app.command('/joke', async ({ command, ack, respond }) => {
+    //   await ack(); // rispondi subito per evitare timeout
+
+    //   const topic = command.text.trim() || 'un argomento a caso';
+
+    //   // Genera barzelletta con IA
+    //   try {
+    //     const completion = await openai.createChatCompletion({
+    //       model: 'gpt-4',
+    //       messages: [
+    //         {
+    //           role: 'system',
+    //           content:
+    //             'Sei un generatore di barzellette brevi, divertenti e adatte a Slack.',
+    //         },
+    //         {
+    //           role: 'user',
+    //           content: `Fammi una barzelletta sull'argomento: ${topic}`,
+    //         },
+    //       ],
+    //       temperature: 0.8,
+    //     });
+
+    //     const joke = completion.data.choices[0].message?.content?.trim();
+
+    //     await respond(`🤣 Ecco una barzelletta sugli *${topic}*:\n\n${joke}`);
+    //   } catch (err) {
+    //     console.error('Errore OpenAI:', err);
+    //     await respond(
+    //       '😕 Oops! Qualcosa è andato storto con la generazione della barzelletta.',
+    //     );
+    //   }
+    // });
 
     await this.app.start();
     console.log('✅ StandupNotifierService attivo in Socket Mode!');
