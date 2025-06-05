@@ -11,5 +11,8 @@ RUN npm ci
 # Poi copia il resto del codice
 COPY . .
 
+# Genera il client Prisma per il container
+RUN npx prisma generate
+
 # Avvia l'app
 CMD ["npm", "run", "start:dev"]

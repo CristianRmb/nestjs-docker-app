@@ -62,7 +62,26 @@ To start the application in development mode, run:
 ```
 docker-compose up --build
 ```
+## Running Console
+- `docker compose exec app npm run console`
 
 ## License
 
 This project is licensed under the MIT License.
+
+
+## PRISMA:
+# Quando crei una nuova migration
+docker-compose exec app npx prisma migrate dev --name nome_migration
+
+# (Opzionale) Verifica che sia stata applicata
+docker-compose exec app npx prisma migrate status
+
+# Per applicare migration esistenti
+docker-compose exec app npx prisma migrate deploy
+
+# Per reset completo del database
+docker-compose exec app npx prisma migrate reset
+
+# Per sincronizzare lo schema senza migration
+docker-compose exec app npx prisma db push

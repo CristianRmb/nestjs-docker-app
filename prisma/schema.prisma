@@ -1,0 +1,402 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== USER MODELS =====
+model User {
+  id          String     @id @default(uuid())
+  email       String     @unique
+  username    String     @unique
+  password    String
+  displayName String?
+  avatar      String?
+  bio         String?
+  status      UserStatus @default(OFFLINE)
+  lastSeen    DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relazioni workspace
+  workspaceMembers    WorkspaceMember[]
+  createdWorkspaces   Workspace[]       @relation("WorkspaceCreator")
+
+  // Relazioni messaggi
+  sentMessages        Message[]         @relation("MessageSender")
+  directConversations DirectConversationMember[]
+
+  // Relazioni sociali
+  friendsRequested    Friendship[]      @relation("FriendshipRequester")
+  friendsReceived     Friendship[]      @relation("FriendshipReceiver")
+  blockedUsers        UserBlock[]       @relation("BlockedBy")
+  blockedByUsers      UserBlock[]       @relation("BlockedUser")
+
+  // Reazioni e interazioni
+  reactions           MessageReaction[]
+
+  // Notifiche
+  notifications       Notification[]
+  notificationSettings NotificationSetting?
+  pushTokens          PushToken[]
+
+  @@map("users")
+}
+
+// ===== WORKSPACE MODELS =====
+model Workspace {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  icon        String?
+  isPublic    Boolean  @default(false)
+  inviteCode  String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  creatorId   String
+
+  // Relazioni
+  creator     User               @relation("WorkspaceCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members     WorkspaceMember[]
+  categories  Category[]
+  channels    Channel[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String        @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(MEMBER)
+  nickname    String?
+  joinedAt    DateTime      @default(now())
+  leftAt      DateTime?
+
+  // Relazioni
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+// ===== CATEGORY & CHANNEL MODELS =====
+model Category {
+  id          String  @id @default(uuid())
+  name        String
+  position    Int     @default(0)
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  // Relazioni
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  channels    Channel[]
+
+  @@map("categories")
+}
+
+model Channel {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  type        ChannelType @default(TEXT)
+  position    Int         @default(0)
+  isPrivate   Boolean     @default(false)
+  workspaceId String
+  categoryId  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relazioni
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  messages    Message[]
+  permissions ChannelPermission[]
+
+  @@map("channels")
+}
+
+model ChannelPermission {
+  id        String     @id @default(uuid())
+  channelId String
+  userId    String?
+  roleId    String?
+  type      Permission
+  allowed   Boolean    @default(true)
+
+  // Relazioni
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@map("channel_permissions")
+}
+
+// ===== DIRECT CONVERSATION MODELS =====
+model DirectConversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relazioni
+  members   DirectConversationMember[]
+  messages  Message[]
+
+  @@map("direct_conversations")
+}
+
+model DirectConversationMember {
+  id                   String @id @default(uuid())
+  directConversationId String
+  userId               String
+  lastReadAt           DateTime?
+  joinedAt             DateTime @default(now())
+
+  // Relazioni
+  conversation         DirectConversation @relation(fields: [directConversationId], references: [id], onDelete: Cascade)
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([directConversationId, userId])
+  @@map("direct_conversation_members")
+}
+
+// ===== MESSAGE MODELS =====
+model Message {
+  id                   String  @id @default(uuid())
+  content              String?
+  type                 MessageType @default(TEXT)
+  senderId             String
+  channelId            String?
+  directConversationId String?
+  replyToId            String?
+  editedAt             DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime @default(now())
+
+  // Relazioni
+  sender               User                @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  channel              Channel?            @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  directConversation   DirectConversation? @relation(fields: [directConversationId], references: [id], onDelete: Cascade)
+  replyTo              Message?            @relation("MessageReply", fields: [replyToId], references: [id])
+  replies              Message[]           @relation("MessageReply")
+  attachments          Attachment[]
+  reactions            MessageReaction[]
+
+  @@map("messages")
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  messageId String
+  filename  String
+  url       String
+  size      Int
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  // Relazioni
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  // Relazioni
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@map("message_reactions")
+}
+
+// ===== SOCIAL MODELS =====
+model Friendship {
+  id          String           @id @default(uuid())
+  requesterId String
+  receiverId  String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relazioni
+  requester   User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  receiver    User @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, receiverId])
+  @@map("friendships")
+}
+
+model UserBlock {
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  // Relazioni
+  blocker   User @relation("BlockedBy", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@map("user_blocks")
+}
+
+// ===== NOTIFICATION MODELS =====
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String?
+  data      Json?            // JSON per dati extra specifici del tipo di notifica
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+
+  // Relazioni
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model NotificationSetting {
+  id                    String  @id @default(uuid())
+  userId                String  @unique
+
+  // Notifiche generali
+  allowNotifications    Boolean @default(true)
+  allowPushNotifications Boolean @default(true)
+  allowEmailNotifications Boolean @default(false)
+
+  // Notifiche specifiche
+  directMessages        Boolean @default(true)
+  mentions              Boolean @default(true)
+  friendRequests        Boolean @default(true)
+  workspaceInvites      Boolean @default(true)
+  channelMessages       Boolean @default(false)
+  systemUpdates         Boolean @default(true)
+
+  // Orari silenzioso
+  quietHoursEnabled     Boolean @default(false)
+  quietHoursStart       String? // formato "HH:mm"
+  quietHoursEnd         String? // formato "HH:mm"
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relazioni
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+model PushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  platform  Platform
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  lastUsed  DateTime @default(now())
+
+  // Relazioni
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_tokens")
+}
+
+// ===== ENUMS =====
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+  BUSY
+  DO_NOT_DISTURB
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum ChannelType {
+  TEXT
+  VOICE
+  ANNOUNCEMENT
+  FORUM
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  SYSTEM
+  EMBED
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+enum Permission {
+  VIEW_CHANNEL
+  SEND_MESSAGES
+  MANAGE_MESSAGES
+  EMBED_LINKS
+  ATTACH_FILES
+  READ_MESSAGE_HISTORY
+  MENTION_EVERYONE
+  USE_EXTERNAL_EMOJIS
+  CONNECT
+  SPEAK
+  MUTE_MEMBERS
+  DEAFEN_MEMBERS
+  MOVE_MEMBERS
+  USE_VOICE_ACTIVITY
+  MANAGE_CHANNEL
+  MANAGE_ROLES
+  MANAGE_WEBHOOKS
+  MANAGE_EMOJIS
+}
+
+enum NotificationType {
+  DIRECT_MESSAGE
+  MENTION
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  WORKSPACE_INVITE
+  CHANNEL_MESSAGE
+  SYSTEM_UPDATE
+  MESSAGE_REACTION
+  WORKSPACE_ROLE_CHANGED
+  CHANNEL_CREATED
+}
+
+enum Platform {
+  IOS
+  ANDROID
+  WEB
+  DESKTOP
+}

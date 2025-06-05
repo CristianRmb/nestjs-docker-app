@@ -1,14 +1,23 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AppController } from './app.controller';
 import { SlackModule } from './modules/slack/slack.module';
 import { StandupNotifierService } from './modules/slack/slack-standup.service';
 import { GoogleStrategy } from './google.strategy';
-import { GoogleAuthController } from './modules/googleAuth/googleAuth.controller';
 import { GoogleAuthModule } from './modules/googleAuth/googleAuth.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { ChannelsModule } from './modules/channels/channels.module';
+import { MessagesModule } from './modules/messages/messages.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { FriendshipsModule } from './modules/friendships/friendships.module';
+import { DirectConversationsModule } from './modules/direct-conversations/direct-conversations.module';
+import { ReactionsModule } from './modules/reactions/reactions.module';
+import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -16,42 +25,22 @@ import { GoogleAuthModule } from './modules/googleAuth/googleAuth.module';
       // envFilePath: process.env.NODE_ENV === 'dev' ? '.env.dev' : '.env',
       ignoreEnvFile: process.env.NODE_ENV === 'prod',
     }),
-    TypeOrmModule.forRootAsync({
-      useFactory: (config: ConfigService) => {
-        const isProd = process.env.NODE_ENV === 'prod';
-        return {
-          type: 'postgres',
-          host: config.get('DB_HOST'),
-          port: config.get<number>('DB_PORT'),
-          username: config.get('DB_USER'),
-          password: config.get('DB_PASS'),
-          database: config.get('DB_NAME'),
-          autoLoadEntities: true,
-          synchronize: !isProd, // Disabilita in produzione
-          ssl: isProd ? true : false,
-          extra: isProd
-            ? {
-                ssl: {
-                  rejectUnauthorized: false,
-                },
-              }
-            : {},
-
-          // entities: ['dist/**/*.entity{.ts,.js}'],
-          entities: [__dirname + '/**/*.entity.js'],
-          logger: 'advanced-console',
-          logNotifications: true,
-          logging: ['error', 'query', 'schema'],
-        };
-      },
-      inject: [ConfigService],
-    }),
+    PrismaModule,
     AuthModule,
     UsersModule,
+    WorkspacesModule,
+    ChannelsModule,
+    MessagesModule,
+    NotificationsModule,
+    FriendshipsModule,
+    DirectConversationsModule,
+    ReactionsModule,
+    AttachmentsModule,
+    PermissionsModule,
     SlackModule,
     GoogleAuthModule,
   ],
   controllers: [AppController],
-  providers: [StandupNotifierService, GoogleStrategy],
+  providers: [StandupNotifierService],
 })
 export class AppModule {}
