@@ -10,11 +10,14 @@ import {
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from './messages.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
   cors: {
     origin: '*',
+    credentials: true,
   },
+  allowEIO3: true,
 })
 export class MessagesGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -27,33 +30,71 @@ export class MessagesGateway
   constructor(
     private messagesService: MessagesService,
     private prisma: PrismaService,
+    private jwtService: JwtService,
   ) {}
 
   async handleConnection(client: Socket) {
     try {
-      // Autenticazione del client (JWT token)
-      const token = client.handshake.auth.token;
+      // Get token from multiple possible sources
+      let token: string | null = null;
+
+      // Check auth object (Socket.IO standard)
+      if (client.handshake.auth?.token) {
+        token = client.handshake.auth.token;
+      }
+      // Check query parameters (common for WebSocket clients)
+      else if (client.handshake.query?.token) {
+        token = client.handshake.query.token as string;
+      }
+      // Check authorization header (HTTP standard)
+      else if (client.handshake.headers?.authorization) {
+        token = client.handshake.headers.authorization;
+      }
+
+      console.log('WebSocket connection attempt:', {
+        auth: client.handshake.auth,
+        query: client.handshake.query,
+        headers: client.handshake.headers,
+        token: token ? 'Token present' : 'No token found',
+      });
+
       const userId = await this.validateToken(token);
 
       if (!userId) {
+        console.log('WebSocket connection rejected: Invalid or missing token');
+        client.emit('error', {
+          message:
+            'Authentication failed. Please provide a valid JWT token in auth.token, query.token, or Authorization header.',
+        });
         client.disconnect();
         return;
       }
 
-      // Associa socket all'utente
+      // Store userId in socket data
+      client.data.userId = userId;
+
+      // Associate socket with user
       if (!this.userSockets.has(userId)) {
         this.userSockets.set(userId, []);
       }
       this.userSockets.get(userId)!.push(client);
 
-      // Unisciti alle "room" delle conversazioni
+      // Join user to their conversation rooms
       await this.joinUserRooms(client, userId);
 
-      // Aggiorna status utente
+      // Update user status
       await this.updateUserStatus(userId, 'ONLINE');
 
-      console.log(`User ${userId} connected`);
+      console.log(`User ${userId} connected via WebSocket successfully`);
+
+      // Send connection confirmation
+      client.emit('connected', {
+        userId,
+        message: 'Successfully connected to WebSocket',
+      });
     } catch (error) {
+      console.error('WebSocket connection error:', error);
+      client.emit('error', { message: 'Connection failed: ' + error.message });
       client.disconnect();
     }
   }
@@ -206,15 +247,24 @@ export class MessagesGateway
     }
   }
 
-  private async validateToken(token: string): Promise<string | null> {
-    // Implementa validazione JWT
-    // return userId from token
-    return 'user-id'; // placeholder
+  private async validateToken(token: string | null): Promise<string | null> {
+    try {
+      if (!token) return null;
+
+      // Remove Bearer prefix if present
+      const cleanToken = token.replace('Bearer ', '');
+
+      const payload = this.jwtService.verify(cleanToken);
+      return payload.sub; // userId
+    } catch (error) {
+      console.error('Token validation failed:', error.message);
+      return null;
+    }
   }
 
   private async getUserFromSocket(client: Socket): Promise<string> {
-    // Estrai userId dal socket
-    return 'user-id'; // placeholder
+    // Get userId from socket data stored during connection
+    return client.data.userId;
   }
 
   private async notifyFriendsStatusChange(userId: string, status: string) {

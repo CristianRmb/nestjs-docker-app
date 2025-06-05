@@ -7,11 +7,15 @@ import {
   Query,
   Put,
   Delete,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { MessagesGateway } from './messages.getway';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('messages')
+@UseGuards(JwtAuthGuard)
 export class MessagesController {
   constructor(
     private readonly messagesService: MessagesService,
@@ -19,9 +23,12 @@ export class MessagesController {
   ) {}
 
   @Post()
-  async createMessage(@Body() createMessageDto: any) {
-    // Il messaggio viene creato e il WebSocket notifica automaticamente
-    return this.messagesService.createMessage(createMessageDto);
+  async createMessage(@Body() createMessageDto: any, @Request() req: any) {
+    const messageData = {
+      ...createMessageDto,
+      senderId: req.user.userId, // Extract from JWT token
+    };
+    return this.messagesService.createMessage(messageData);
   }
 
   @Get('channel/:channelId')

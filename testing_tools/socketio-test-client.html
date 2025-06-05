@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.IO Test Client</title>
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+
+    .log {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .connected {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .disconnected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🚀 Socket.IO WebSocket Test Client</h1>
+
+  <div class="container">
+    <h2>Connection Settings</h2>
+    <div class="form-group">
+      <label for="serverUrl">Server URL:</label>
+      <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+    </div>
+    <div class="form-group">
+      <label for="jwtToken">JWT Token:</label>
+      <input type="text" id="jwtToken" placeholder="Enter your JWT token here">
+      <small>Get token from: POST /auth/login or /auth/register</small>
+    </div>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <span id="connectionStatus" class="status disconnected">Disconnected</span>
+  </div>
+
+  <div class="grid">
+    <div class="container">
+      <h2>📝 Send Message</h2>
+      <div class="form-group">
+        <label for="messageType">Message Type:</label>
+        <select id="messageType" onchange="toggleMessageFields()">
+          <option value="dm">💬 Direct Message</option>
+          <option value="channel">📢 Channel Message</option>
+        </select>
+      </div>
+      <div class="form-group" id="dmField">
+        <label for="conversationId">Conversation ID:</label>
+        <input type="text" id="conversationId" placeholder="Enter conversation ID">
+      </div>
+      <div class="form-group" id="channelField" style="display: none;">
+        <label for="channelId">Channel ID:</label>
+        <input type="text" id="channelId" placeholder="Enter channel ID">
+      </div>
+      <div class="form-group">
+        <label for="messageContent">Message Content:</label>
+        <textarea id="messageContent" rows="3" placeholder="Type your message..."></textarea>
+      </div>
+      <button onclick="sendMessage()" disabled id="sendBtn">Send Message</button>
+    </div>
+
+    <div class="container">
+      <h2>⌨️ Typing Indicators</h2>
+      <div class="form-group">
+        <label for="typingType">Typing Type:</label>
+        <select id="typingType" onchange="toggleTypingFields()">
+          <option value="dm">💬 Direct Message</option>
+          <option value="channel">📢 Channel Message</option>
+        </select>
+      </div>
+      <div class="form-group" id="typingDmField">
+        <label for="typingConversationId">Conversation ID:</label>
+        <input type="text" id="typingConversationId" placeholder="Enter conversation ID">
+      </div>
+      <div class="form-group" id="typingChannelField" style="display: none;">
+        <label for="typingChannelId">Channel ID:</label>
+        <input type="text" id="typingChannelId" placeholder="Enter channel ID">
+      </div>
+      <button onclick="startTyping()" disabled id="startTypingBtn">Start Typing</button>
+      <button onclick="stopTyping()" disabled id="stopTypingBtn">Stop Typing</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Activity Log</h2>
+    <button onclick="clearLog()">Clear Log</button>
+    <div id="log" class="log">Waiting for connection...</div>
+  </div>
+
+  <div class="container">
+    <h2>Quick Test Data</h2>
+    <p><strong>Test Tokens for Multi-User Testing:</strong></p>
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin: 10px 0;">
+      <p><strong>👤 User 1 (testuser2):</strong></p>
+      <code
+        style="font-size: 11px; word-break: break-all;">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTI0MzkxMC01MzRhLTQ5M2ItOGNkOC0wY2VlZTE4Y2Q5OGYiLCJ1c2VybmFtZSI6InRlc3R1c2VyMiIsImVtYWlsIjoidGVzdHVzZXIyQGV4YW1wbGUuY29tIiwiaWF0IjoxNzQ5MTE0NTE2LCJleHAiOjE3NDkyMDA5MTZ9.QLlOi4yRmpxPPQPcoMpPop27eP_DLPwHJzQPhAAg7Os</code>
+      <br><br>
+      <p><strong>👤 User 2 (member):</strong></p>
+      <code
+        style="font-size: 11px; word-break: break-all;">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNGMyZDVlOC1mOWExLTRiMmMtOGQzZS05ZjFhMmIzYzRkNWUiLCJ1c2VybmFtZSI6Im1lbWJlciIsImVtYWlsIjoibWVtYmVyQGV4YW1wbGUuY29tIiwiaWF0IjoxNzQ5MTE0NTE2LCJleHAiOjE3NDkyMDA5MTZ9.MK1OCFDC9VvmyOCQWx2ezeaeJKCl8nmbkQbBWMugKIg</code>
+    </div>
+    <p><strong>Test IDs:</strong></p>
+    <ul>
+      <li><strong>DM Conversation:</strong> <code>test-conversation-123</code></li>
+      <li><strong>Channel:</strong> <code>test-channel-456</code></li>
+      <li><strong>Workspace:</strong> <code>test-workspace-123</code></li>
+      <li>Per conversazioni reali: Get from GET /direct-conversations endpoint</li>
+    </ul>
+    <p><strong>🧪 How to Test Multi-User Chat:</strong></p>
+    <ol>
+      <li>Open this page in <strong>2 different browser tabs/windows</strong></li>
+      <li>In tab 1: Use User 1 token, connect</li>
+      <li>In tab 2: Use User 2 token, connect</li>
+      <li>Choose message type: <strong>💬 Direct Message</strong> or <strong>📢 Channel Message</strong></li>
+      <li>Both users send messages to the same ID (conversation or channel)</li>
+      <li>Watch real-time message exchange! 🎉</li>
+    </ol>
+  </div>
+
+  <script>
+    let socket = null;
+    let isConnected = false;
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString();
+      const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'send' ? '📤' : type === 'receive' ? '📥' : 'ℹ️';
+      logDiv.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateConnectionStatus(connected) {
+      isConnected = connected;
+      const statusEl = document.getElementById('connectionStatus');
+      const buttons = ['sendBtn', 'startTypingBtn', 'stopTypingBtn'];
+
+      if (connected) {
+        statusEl.textContent = 'Connected';
+        statusEl.className = 'status connected';
+        buttons.forEach(id => document.getElementById(id).disabled = false);
+      } else {
+        statusEl.textContent = 'Disconnected';
+        statusEl.className = 'status disconnected';
+        buttons.forEach(id => document.getElementById(id).disabled = true);
+      }
+    }
+
+    function connect() {
+      const serverUrl = document.getElementById('serverUrl').value;
+      const jwtToken = document.getElementById('jwtToken').value;
+
+      if (!jwtToken) {
+        alert('Please enter a JWT token');
+        return;
+      }
+
+      log(`Attempting to connect to ${serverUrl}...`);
+
+      socket = io(serverUrl, {
+        auth: {
+          token: jwtToken
+        },
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('connect', () => {
+        log('Successfully connected to WebSocket!', 'success');
+        updateConnectionStatus(true);
+      });
+
+      socket.on('connected', (data) => {
+        log(`Connection confirmed: ${JSON.stringify(data)}`, 'success');
+      });
+
+      socket.on('disconnect', (reason) => {
+        log(`Disconnected: ${reason}`, 'error');
+        updateConnectionStatus(false);
+      });
+
+      socket.on('error', (error) => {
+        log(`Error: ${JSON.stringify(error)}`, 'error');
+      });
+
+      socket.on('connect_error', (error) => {
+        log(`Connection error: ${error.message}`, 'error');
+        updateConnectionStatus(false);
+      });
+
+      // Message events
+      socket.on('new_message', (data) => {
+        const messageType = data.channelId ? '📢 CHANNEL' : '💬 DM';
+        const location = data.channelId || data.directConversationId;
+
+        const messageInfo = `
+📥 ${messageType} MESSAGE RECEIVED:
+   👤 From: ${data.sender?.username || data.senderId}
+   📝 Content: ${data.content}
+   🕒 Time: ${new Date(data.createdAt).toLocaleTimeString()}
+   📋 Location: ${location}
+`;
+        log(messageInfo, 'receive');
+      });
+
+      socket.on('message_updated', (data) => {
+        log(`📝 Message updated: ${JSON.stringify(data)}`, 'receive');
+      });
+
+      socket.on('message_deleted', (data) => {
+        log(`🗑️ Message deleted: ${JSON.stringify(data)}`, 'receive');
+      });
+
+      // Typing events
+      socket.on('user_typing', (data) => {
+        if (data.typing) {
+          log(`⌨️ Someone is typing... (User: ${data.userId})`, 'receive');
+        } else {
+          log(`⏹️ Someone stopped typing (User: ${data.userId})`, 'receive');
+        }
+      });
+
+      socket.on('user_stopped_typing', (data) => {
+        log(`⏹️ Someone stopped typing (User: ${data.userId})`, 'receive');
+      });
+
+      // Status events
+      socket.on('friend_status_change', (data) => {
+        log(`👥 Friend status change: ${data.userId} is now ${data.status}`, 'receive');
+      });
+    }
+
+    function disconnect() {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+      updateConnectionStatus(false);
+      log('Disconnected from server');
+    }
+
+    function toggleMessageFields() {
+      const messageType = document.getElementById('messageType').value;
+      const dmField = document.getElementById('dmField');
+      const channelField = document.getElementById('channelField');
+
+      if (messageType === 'dm') {
+        dmField.style.display = 'block';
+        channelField.style.display = 'none';
+      } else {
+        dmField.style.display = 'none';
+        channelField.style.display = 'block';
+      }
+    }
+
+    function toggleTypingFields() {
+      const typingType = document.getElementById('typingType').value;
+      const dmField = document.getElementById('typingDmField');
+      const channelField = document.getElementById('typingChannelField');
+
+      if (typingType === 'dm') {
+        dmField.style.display = 'block';
+        channelField.style.display = 'none';
+      } else {
+        dmField.style.display = 'none';
+        channelField.style.display = 'block';
+      }
+    }
+
+    function sendMessage() {
+      if (!isConnected) {
+        alert('Not connected to server');
+        return;
+      }
+
+      const messageType = document.getElementById('messageType').value;
+      const content = document.getElementById('messageContent').value;
+
+      if (!content) {
+        alert('Please enter message content');
+        return;
+      }
+
+      let messageData = { content };
+      let location = '';
+
+      if (messageType === 'dm') {
+        const conversationId = document.getElementById('conversationId').value;
+        if (!conversationId) {
+          alert('Please enter conversation ID');
+          return;
+        }
+        messageData.directConversationId = conversationId;
+        location = `DM ${conversationId}`;
+      } else {
+        const channelId = document.getElementById('channelId').value;
+        if (!channelId) {
+          alert('Please enter channel ID');
+          return;
+        }
+        messageData.channelId = channelId;
+        location = `Channel ${channelId}`;
+      }
+
+      log(`📤 Sending ${messageType.toUpperCase()} message: "${content}" to ${location}`, 'send');
+      socket.emit('send_message', messageData);
+
+      // Clear the message input
+      document.getElementById('messageContent').value = '';
+    }
+
+    function startTyping() {
+      if (!isConnected) {
+        alert('Not connected to server');
+        return;
+      }
+
+      const typingType = document.getElementById('typingType').value;
+      let typingData = {};
+      let location = '';
+
+      if (typingType === 'dm') {
+        const conversationId = document.getElementById('typingConversationId').value;
+        if (!conversationId) {
+          alert('Please enter conversation ID');
+          return;
+        }
+        typingData.directConversationId = conversationId;
+        location = `DM ${conversationId}`;
+      } else {
+        const channelId = document.getElementById('typingChannelId').value;
+        if (!channelId) {
+          alert('Please enter channel ID');
+          return;
+        }
+        typingData.channelId = channelId;
+        location = `Channel ${channelId}`;
+      }
+
+      log(`⌨️ Starting typing indicator for ${location}`, 'send');
+      socket.emit('typing_start', typingData);
+    }
+
+    function stopTyping() {
+      if (!isConnected) {
+        alert('Not connected to server');
+        return;
+      }
+
+      const typingType = document.getElementById('typingType').value;
+      let typingData = {};
+      let location = '';
+
+      if (typingType === 'dm') {
+        const conversationId = document.getElementById('typingConversationId').value;
+        if (!conversationId) {
+          alert('Please enter conversation ID');
+          return;
+        }
+        typingData.directConversationId = conversationId;
+        location = `DM ${conversationId}`;
+      } else {
+        const channelId = document.getElementById('typingChannelId').value;
+        if (!channelId) {
+          alert('Please enter channel ID');
+          return;
+        }
+        typingData.channelId = channelId;
+        location = `Channel ${channelId}`;
+      }
+
+      log(`⏹️ Stopping typing indicator for ${location}`, 'send');
+      socket.emit('typing_stop', typingData);
+    }
+
+    function clearLog() {
+      document.getElementById('log').textContent = '';
+    }
+
+    // Initialize
+    updateConnectionStatus(false);
+    log('WebSocket test client ready. Enter JWT token and click Connect.');
+  </script>
+</body>
+
+</html>

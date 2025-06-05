@@ -15,7 +15,14 @@ export class MessagesService {
     replyToId?: string;
   }): Promise<Message> {
     return this.prisma.message.create({
-      data,
+      data: {
+        content: data.content,
+        type: data.type || 'TEXT',
+        senderId: data.senderId,
+        channelId: data.channelId,
+        directConversationId: data.directConversationId,
+        replyToId: data.replyToId,
+      },
       include: {
         sender: true,
         channel: true,
