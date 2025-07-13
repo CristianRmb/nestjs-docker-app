@@ -35,12 +35,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # - name: 🔥 Login to Amazon ECR
-      #   uses: aws-actions/amazon-ecr-login@v2
+      - name: 🔥 Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
+      # aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - name: 🚀 Build Docker image and push to ECR
         run: |
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
           IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
           docker build --platform linux/amd64 -t $ECR_REPOSITORY .
           docker tag $ECR_REPOSITORY:latest $IMAGE_URI

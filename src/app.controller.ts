@@ -4,7 +4,7 @@ import { Controller, Get } from '@nestjs/common';
 export class AppController {
   @Get('/')
   getRoot(): string {
-    return 'OK';
+    return 'Welcome to the NestJS application!';
   }
 
   @Get('/health')
