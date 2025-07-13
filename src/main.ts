@@ -22,7 +22,8 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   // await app.listen(3000);
   // Railway espone process.env.PORT
-  const port = process.env.PORT || 8080;
+  // const port = process.env.PORT || 8080;
+  const port = 3000; // Use a fixed port for local development
 
   await app.listen(port, '0.0.0.0');
   console.log(`🚀 App is running on http://localhost:${port}`);

@@ -1,9 +1,70 @@
-name: CI/CD & Deploy
+# name: CI/CD & Deploy
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   build-test-deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: 📥 Checkout
+#         uses: actions/checkout@v3
+
+#       - name: 🟢 Setup Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: 20
+
+#       - name: 📦 Install deps
+#         run: npm ci
+
+#       - name: ⚡ Generate Prisma Client
+#         run: npx prisma generate
+
+#       # - name: 🚀 Build Docker image for production
+#       #   run: |
+#       #     docker build -f Dockerfile.prod -t nestjs-app .
+#       #   env:
+#       #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+#       - name: 🚀 Deploy to Railway
+#         run: npx @railway/cli up --service=nestjs-docker-app
+#         env:
+#           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+#       - name: 📣 Notify Slack (success)
+#         if: success()
+#         uses: slackapi/slack-github-action@v1.24.0
+#         with:
+#           payload: |
+#             {
+#               "text": "✅ Deploy completato con successo su Railway! 🎉"
+#             }
+#         env:
+#           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+#       - name: ❌ Notify Slack (failure)
+#         if: failure()
+#         uses: slackapi/slack-github-action@v1.24.0
+#         with:
+#           payload: |
+#             {
+#               "text": "❌ Deploy fallito! Controlla i log CI su GitHub Actions."
+#             }
+#         env:
+#           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+#! QUi IL DEPLOY SU ECS
+
+name: CI/CD & Deploy to ECS
 
 on:
   push:
     branches:
-      - main
+      - aws-deploy
 
 jobs:
   build-test-deploy:
@@ -18,41 +79,57 @@ jobs:
         with:
           node-version: 20
 
-      - name: 📦 Install deps
+      - name: 📦 Install dependencies
         run: npm ci
 
       - name: ⚡ Generate Prisma Client
         run: npx prisma generate
 
-      # - name: 🚀 Build Docker image for production
-      #   run: |
-      #     docker build -f Dockerfile.prod -t nestjs-app .
+      - name: 🔥 Login to AWS ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public # o togli se usi private ECR
+
+      - name: 🚀 Build Docker image and push to ECR
+        env:
+          AWS_REGION: eu-north-1
+          AWS_ACCOUNT_ID: 0363-3817-6833 # sostituisci col tuo account
+          ECR_REPOSITORY: nest-app
+        run: |
+          IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+          docker build --platform linux/amd64 -t $ECR_REPOSITORY .
+          docker push $IMAGE_URI
+
+      - name: 🚀 Force new deployment on ECS
+        env:
+          AWS_REGION: eu-north-1
+          ECS_CLUSTER: nest-app-cluster
+          ECS_SERVICE: task-nest-app-service-47p3bckk
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --force-new-deployment \
+            --region $AWS_REGION
+
+      # - name: 📣 Notify Slack (success)
+      #   if: success()
+      #   uses: slackapi/slack-github-action@v1.24.0
+      #   with:
+      #     payload: |
+      #       {
+      #         "text": "✅ Deploy completato con successo su ECS! 🎉"
+      #       }
       #   env:
-      #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      - name: 🚀 Deploy to Railway
-        run: npx @railway/cli up --service=nestjs-docker-app
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: 📣 Notify Slack (success)
-        if: success()
-        uses: slackapi/slack-github-action@v1.24.0
-        with:
-          payload: |
-            {
-              "text": "✅ Deploy completato con successo su Railway! 🎉"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - name: ❌ Notify Slack (failure)
-        if: failure()
-        uses: slackapi/slack-github-action@v1.24.0
-        with:
-          payload: |
-            {
-              "text": "❌ Deploy fallito! Controlla i log CI su GitHub Actions."
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # - name: ❌ Notify Slack (failure)
+      #   if: failure()
+      #   uses: slackapi/slack-github-action@v1.24.0
+      #   with:
+      #     payload: |
+      #       {
+      #         "text": "❌ Deploy fallito! Controlla i log CI su GitHub Actions."
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
