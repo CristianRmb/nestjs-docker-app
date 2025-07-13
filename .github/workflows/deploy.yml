@@ -57,7 +57,7 @@
 #         env:
 #           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-#! QUi IL DEPLOY SU ECS
+#! QUi IL DEPLOY SU ECS 1
 
 name: CI/CD & Deploy to ECS
 
