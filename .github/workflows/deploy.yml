@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: eu-north-1
-      AWS_ACCOUNT_ID: 036338176833 # Sostituisci col tuo reale AWS Account ID (senza trattini)
+      AWS_ACCOUNT_ID:  ${{ secrets.AWS_ACCOUNT_ID }}
       ECR_REPOSITORY: nest-app
 
     steps:
