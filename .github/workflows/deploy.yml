@@ -69,6 +69,10 @@ on:
 jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
+    env:
+        AWS_REGION: eu-north-1
+        AWS_ACCOUNT_ID: 0363-3817-6833 # sostituisci col tuo account
+        ECR_REPOSITORY: nest-app
 
     steps:
       - name: 📥 Checkout
@@ -88,13 +92,9 @@ jobs:
       - name: 🔥 Login to AWS ECR
         uses: aws-actions/amazon-ecr-login@v2
         with:
-          registry-type: public # o togli se usi private ECR
+            region: ${{ env.AWS_REGION }}
 
       - name: 🚀 Build Docker image and push to ECR
-        env:
-          AWS_REGION: eu-north-1
-          AWS_ACCOUNT_ID: 0363-3817-6833 # sostituisci col tuo account
-          ECR_REPOSITORY: nest-app
         run: |
           IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
           docker build --platform linux/amd64 -t $ECR_REPOSITORY .
