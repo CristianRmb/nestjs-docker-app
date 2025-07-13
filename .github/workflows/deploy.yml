@@ -70,9 +70,9 @@ jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
     env:
-        AWS_REGION: eu-north-1
-        AWS_ACCOUNT_ID: 0363-3817-6833 # sostituisci col tuo account
-        ECR_REPOSITORY: nest-app
+      AWS_REGION: eu-north-1
+      AWS_ACCOUNT_ID: 036338176833 # Sostituisci col tuo reale AWS Account ID (senza trattini)
+      ECR_REPOSITORY: nest-app
 
     steps:
       - name: 📥 Checkout
@@ -89,20 +89,25 @@ jobs:
       - name: ⚡ Generate Prisma Client
         run: npx prisma generate
 
-      - name: 🔥 Login to AWS ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
         with:
-            region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🔥 Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: 🚀 Build Docker image and push to ECR
         run: |
           IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
           docker build --platform linux/amd64 -t $ECR_REPOSITORY .
+          docker tag $ECR_REPOSITORY:latest $IMAGE_URI
           docker push $IMAGE_URI
 
       - name: 🚀 Force new deployment on ECS
         env:
-          AWS_REGION: eu-north-1
           ECS_CLUSTER: nest-app-cluster
           ECS_SERVICE: task-nest-app-service-47p3bckk
         run: |
